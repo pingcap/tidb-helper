@@ -70,9 +70,9 @@ rpm: binary
 		-v $(CURDIR)/etc/tidb/tidb-server.service:/root/rpmbuild/SOURCES/service/tidb-server.service \
 		-v $(CURDIR)/etc/tikv/tikv-server.service:/root/rpmbuild/SOURCES/service/tikv-server.service \
 		-v $(CURDIR)/etc/pd/pd-server.service:/root/rpmbuild/SOURCES/service/pd-server.service \
-		-v $(CURDIR)/build/tidb/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml \
-		-v $(CURDIR)/build/tikv/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml \
-		-v $(CURDIR)/build/pd/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml \
+		-v $(CURDIR)/build/tidb/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
+		-v $(CURDIR)/build/tikv/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
+		-v $(CURDIR)/build/pd/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
 		-v $(CURDIR)/etc/tidb/tidb-server.sysconfig:/root/rpmbuild/SOURCES/sysconfig/tidb-server.sysconfig \
 		-v $(CURDIR)/build/tidb/LICENSE:/root/rpmbuild/BUILD/LICENSE \
 		-v $(CURDIR)/build/tidb/README.md:/root/rpmbuild/BUILD/README.md \
