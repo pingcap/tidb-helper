@@ -1,0 +1,1 @@
+OPTIONS="-config /etc/tidb/tidb-server.toml"
