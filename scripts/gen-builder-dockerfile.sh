@@ -71,7 +71,7 @@ EOT
 cat <<EOT
 RUN rustup self update
 RUN rustup set profile minimal
-RUN rustup default \$(cat tikv/rust-toolchain)
+RUN rustup default \$(cat /build/tikv/rust-toolchain)
 EOT
 
 # make TiDB

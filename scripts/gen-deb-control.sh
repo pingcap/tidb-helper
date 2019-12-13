@@ -1,7 +1,12 @@
+#!/bin/sh
+
+# usage: bash gen-deb-control.sh version
+
 if [ "$1" != "" ]; then
   VERSION=$1
 else
-  VERSION="master"
+  VERSION must not be empty!
+  exit -1
 fi
 
 cat <<-EOF
