@@ -1,7 +1,3 @@
-ifndef TAG
-    TAG := master
-endif
-
 BUILD_DIR=build
 TIDB_SOURCE=$(BUILD_DIR)/tidb
 TIKV_SOURCE=$(BUILD_DIR)/tikv
@@ -49,18 +45,23 @@ $(ARTIFACT_BINARY): $(ARTIFACT_DOCKER)
 		${DOCKER_IMAGE_NAME} \
 		/tidb-server /tikv-server /tikv-ctl /pd-server /pd-ctl /pd-recover /out
 
-$(ARTIFACT_DOCKER):
-	bash ./scripts/gen-dockerfile.sh $(TAG) | docker build -t ${DOCKER_IMAGE_NAME} -f - .
-	docker save ${DOCKER_IMAGE_NAME} | gzip > ${ARTIFACT_DOCKER}
-
 $(ARTIFACT_DIR):
-	mkdir $(ARTIFACT_DIR)
+	mkdir -p $(ARTIFACT_DIR)
+
+$(ARTIFACT_DOCKER): $(ARTIFACT_DIR)
+ifeq ($(TAG),)
+	# currently we only support build with tags specified.
+	echo TAG must be specified
+	exit 1
+endif
+	bash ./scripts/gen-dockerfile.sh $(TAG) | tee docker-file | docker build -t ${DOCKER_IMAGE_NAME} -f - .
+	docker save ${DOCKER_IMAGE_NAME} | gzip > ${ARTIFACT_DOCKER}
 
 .PHONY: docker
 docker: source $(ARTIFACT_DIR) $(ARTIFACT_DOCKER)
 
 .PHONY: rpm
-rpm: binary
+rpm: $(ARTIFACT_BINARY)
 	bash scripts/rpm/gen-rpm-spec.sh $(TAG) > ${ARTIFACT_DIR}/rpm-spec
 	docker build -t tidb-rpm-builder:${TAG} -f scripts/rpm/builder.dockerfile .
 	docker run \
@@ -88,22 +89,31 @@ $(ARTIFACT_PACKAGE): $(ARTIFACT_BINARY)
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-server ${ARTIFACT_PACKAGE}/usr/bin/pd-server
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-ctl ${ARTIFACT_PACKAGE}/usr/bin/pd-ctl
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-recover ${ARTIFACT_PACKAGE}/usr/bin/pd-recover
-	install -D -m 0644 etc/build/tidb/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml.example
-	install -D -m 0644 etc/build/tikv/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml.example
-	install -D -m 0644 etc/build/pd/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml.example
-	install -D -m 0644 etc/tidb/tidb-server.service ${ARTIFACT_PACKAGE}/lib/systemd/system/tidb.service
-	install -D -m 0644 etc/tikv/tikv-server.service ${ARTIFACT_PACKAGE}/lib/systemd/system/tikv.service
-	install -D -m 0644 etc/pd/pd-server.service ${ARTIFACT_PACKAGE}/lib/systemd/system/pd.service
+	install -D -m 0644 build/tidb/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml.example
+	install -D -m 0644 build/tikv/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml.example
+	install -D -m 0644 build/pd/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml.example
+	install -D -m 0644 etc/tidb/tidb-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tidb.service
+	install -D -m 0644 etc/tikv/tikv-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tikv.service
+	install -D -m 0644 etc/pd/pd-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/pd.service
 	mkdir -p ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/pd
 .PHONY: deb
-deb: $(ARTIFACT_BINARY)
-	bash scripts/deb/gen-control.sh | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
-	cp etc/deb/preinst etc/deb/postinst ${ARTIFACT_PACKAGE}/DEBIAN/
+deb: $(ARTIFACT_PACKAGE)
+	bash scripts/deb/gen-control.sh $(TAG) | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
+	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/preinst
+	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/postinst
 	docker build -t tidb-deb-builder:${TAG} -f scripts/deb/builder.dockerfile scripts
 	docker run \
 		--rm \
-		-v $(CURDIR)/${ARTIFACT_DIR}:/build \
+		-v $(CURDIR)/${BUILD_DIR}:/build \
 		tidb-deb-builder:${TAG} fakeroot dpkg-deb --build ${ARTIFACT_PACKAGE} /build/dist
-	mv ${ARTIFACT_DIR}/tidb_${TAG}_amd64.deb $(ARTIFACT_DIR)
 	rm -rf ${ARTIFACT_PACKAGE}
 
+.PHONY: clean-dist clean-bin clean-all
+clean-dist:
+	rm -rf build/dist
+
+clean-bin:
+	rm -rf build/bin
+
+clean-all:
+	rm -rf build

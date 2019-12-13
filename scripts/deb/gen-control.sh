@@ -14,7 +14,6 @@ Depends: systemd
 Maintainer: The TiDB Authors
 Description:
  TiDB is an open-source NewSQL database that supports Hybrid Transactional and Analytical Processing (HTAP) workloads. It is MySQL compatible and features horizontal scalability, strong consistency, and high availability.
-
  TiDB features:
  * Horizontal Scalability
  * MySQL Compatible Syntax
