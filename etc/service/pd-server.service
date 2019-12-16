@@ -8,7 +8,6 @@ ExecStart=/usr/bin/pd-server --config $CONFIGURATION_DIRECTORY/pd/config.toml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
-LimitNOFILE=82920
 ConfigurationDirectory=pd
 WorkingDirectory=/var/lib/pd/
 

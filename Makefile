@@ -21,6 +21,7 @@ endef
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+.PHONY: TIDB_SOURCE TIKV_SOURCE PD_SOURCE
 # don't use directory so we can force update the projects each time.
 TIDB_SOURCE:
 	echo "tidb soure"
@@ -71,7 +72,6 @@ rpm: $(ARTIFACT_BINARY)
 		-v $(CURDIR)/build/tidb/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
 		-v $(CURDIR)/build/tikv/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
 		-v $(CURDIR)/build/pd/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
-		-v $(CURDIR)/etc/sysconfig:/root/rpmbuild/SOURCES/sysconfig \
 		-v $(CURDIR)/build/tidb/LICENSE:/root/rpmbuild/BUILD/LICENSE \
 		-v $(CURDIR)/build/tidb/README.md:/root/rpmbuild/BUILD/README.md \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
@@ -105,12 +105,12 @@ deb: $(ARTIFACT_PACKAGE)
 		tidb-deb-builder:${TAG} fakeroot dpkg-deb --build ${ARTIFACT_PACKAGE} /build/dist
 	rm -rf ${ARTIFACT_PACKAGE}
 
-.PHONY: clean-dist clean-bin clean-all
+.PHONY: clean-dist clean-bin clean
 clean-dist:
 	rm -rf build/dist
 
 clean-bin:
 	rm -rf build/bin
 
-clean-all:
+clean:
 	rm -rf build
