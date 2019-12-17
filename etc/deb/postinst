@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+chown -R tidb /var/lib/tidb
+chown -R tidb /var/lib/tikv
+chown -R tidb /var/lib/pd
