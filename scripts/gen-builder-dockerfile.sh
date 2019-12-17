@@ -81,7 +81,7 @@ EOT
 
 if [ "$tag" != "" ];then
   cat << EOT
-RUN git checkout v$tag
+RUN git fetch && git checkout v$tag
 EOT
 fi
 
@@ -98,7 +98,7 @@ EOT
 
 if [ "$tag" != "" ];then
   cat << EOT
-RUN git checkout v$tag
+RUN git fetch && git checkout v$tag
 EOT
 fi
 
@@ -114,7 +114,7 @@ EOT
 
 if [ "$tag" != "" ];then
   cat << EOT
-RUN git checkout v$tag
+RUN git fetch && git checkout v$tag
 EOT
 fi
 
