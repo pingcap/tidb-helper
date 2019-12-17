@@ -8,7 +8,7 @@ ExecStart=/usr/bin/tikv-server --config $CONFIGURATION_DIRECTORY/tikv/config.tom
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
-LimitNOFILE=82920
+LimitNOFILE=1024
 ConfigurationDirectory=tikv
 WorkingDirectory=/var/lib/tikv/
 
