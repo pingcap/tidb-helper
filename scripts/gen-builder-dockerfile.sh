@@ -123,6 +123,13 @@ RUN echo TiKV commit: \$(git rev-parse HEAD)
 RUN make dist_release
 EOT
 
+# FIXME, compress tikv-server/tikv-ctl, we should do this at `make dist_release` in tikv
+# but currently the releases branches doesnot contain these procedures
+cat << EOT
+RUN objcopy --compress-debug-sections=zlib-gnu /build/tikv/bin/tikv-server
+RUN objcopy --compress-debug-sections=zlib-gnu /build/tikv/bin/tikv-ctl
+EOT
+
 # Export to a clean image
 cat <<EOT
 FROM pingcap/alpine-glibc

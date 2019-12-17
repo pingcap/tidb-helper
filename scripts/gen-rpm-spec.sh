@@ -20,7 +20,6 @@ URL:            https://github.com/pingcap/tidb
 Source0:        bin
 Source1:        config
 Source2:        service
-Source3:        sysconfig
 
 Requires:       systemd
 Requires(pre):  shadow-utils
@@ -52,7 +51,6 @@ TiDB features:
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tidb-server  \$RPM_BUILD_ROOT%{_bindir}/tidb-server
 %{__install} -D -m 0644 %{_sourcedir}/config/tidb/config.toml.example \$RPM_BUILD_ROOT%{_sysconfdir}/tidb/config.toml.example
 %{__install} -D -m 0644 %{_sourcedir}/service/tidb-server.service \$RPM_BUILD_ROOT%{_unitdir}/tidb-server.service
-%{__install} -D -m 0644 %{_sourcedir}/sysconfig/tidb-server.sysconfig \$RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/tidb-server
 
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-server \$RPM_BUILD_ROOT%{_bindir}/tikv-server
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-ctl \$RPM_BUILD_ROOT%{_bindir}/tikv-ctl
@@ -90,7 +88,6 @@ exit 0
 %{_bindir}/tidb-server
 %{_unitdir}/tidb-server.service
 %config %{_sysconfdir}/tidb/config.toml.example
-%config(noreplace) %{_sysconfdir}/sysconfig/tidb-server
 %dir %{_sysconfdir}/tidb
 %dir %attr(0755, tidb, tidb) %{_sharedstatedir}/tidb
 %dir %attr(0755, tidb, tidb) %{_localstatedir}/log/tidb
