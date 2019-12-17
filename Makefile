@@ -1,41 +1,54 @@
+PROJECT_TIDB=tidb
+PROJECT_TIKV=tikv
+PROJECT_PD=pd
+ORG_PINGCAP=pingcap
+ORG_TIKV=tikv
+GIT_REPO_BASE_URL=https://github.com
+GIT_URL_TIDB=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_TIDB)
+GIT_URL_TIKV=$(GIT_REPO_BASE_URL)/$(ORG_TIKV)/$(PROJECT_TIKV)
+GIT_URL_PD=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_PD)
 BUILD_DIR=build
-TIDB_SOURCE=$(BUILD_DIR)/tidb
-TIKV_SOURCE=$(BUILD_DIR)/tikv
-PD_SOURCE=$(BUILD_DIR)/pd
-ARTIFACT_BINARY=$(BUILD_DIR)/bin
+TIDB_SOURCE=$(BUILD_DIR)/$(PROJECT_TIDB)
+TIKV_SOURCE=$(BUILD_DIR)/$(PROJECT_TIKV)
+PD_SOURCE=$(BUILD_DIR)/$(PROJECT_PD)
+ARTIFACT_BINARY=$(BUILD_DIR)/bin/$(TAG)
 ARTIFACT_DIR=$(BUILD_DIR)/dist
-ARTIFACT_DOCKER=${ARTIFACT_DIR}/tidb-docker.tar.gz
+ARTIFACT_DOCKER=${ARTIFACT_DIR}/tidb-docker-$(TAG).tar.gz
 ARTIFACT_PACKAGE=$(ARTIFACT_DIR)/tidb-pkg
 ARTIFACT_RPM=${ARTIFACT_DIR}/
 DOCKER_IMAGE_NAME=pingcap/tidb:$(TAG)
 
 define fetch_source
 	mkdir -p $(1)
-	@if [ -f $(1)/Makefile ]; then\
-		cd $(1) && git fetch; \
-	else \
-		git clone https://github.com/pingcap/$(2).git $(1); \
+	@if [ ! -d $(1)/.git ]; then\
+		git clone $(2).git $(1); \
 	fi
 endef
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: TIDB_SOURCE TIKV_SOURCE PD_SOURCE
 # don't use directory so we can force update the projects each time.
-TIDB_SOURCE:
-	echo "tidb soure"
-	$(call fetch_source, $(TIDB_SOURCE),tidb)
+$(TIDB_SOURCE):
+	$(call fetch_source, $(TIDB_SOURCE),$(GIT_URL_TIDB))
 
-TIKV_SOURCE:
-	$(call fetch_source, $(TIKV_SOURCE),tikv)
+$(TIKV_SOURCE):
+	$(call fetch_source, $(TIKV_SOURCE),$(GIT_URL_TIKV))
 
-PD_SOURCE:
-	$(call fetch_source, $(PD_SOURCE),pd)
+$(PD_SOURCE):
+	$(call fetch_source, $(PD_SOURCE),$(GIT_URL_PD))
+
+.PHONY: check
+check:
+ifndef TAG
+	$(error TAG must be specified)
+endif
 
 .PHONY: source
-source: TIDB_SOURCE TIKV_SOURCE PD_SOURCE
-	echo "source updated!"
+source: $(TIDB_SOURCE) $(TIKV_SOURCE) $(PD_SOURCE)
+
+.PHONY: binary
+binary: check $(ARTIFACT_BINARY)
 
 $(ARTIFACT_BINARY): $(ARTIFACT_DOCKER)
 	mkdir -p ${ARTIFACT_BINARY}
@@ -46,23 +59,16 @@ $(ARTIFACT_BINARY): $(ARTIFACT_DOCKER)
 		${DOCKER_IMAGE_NAME} \
 		/tidb-server /tikv-server /tikv-ctl /pd-server /pd-ctl /pd-recover /out
 
-$(ARTIFACT_DIR):
+$(ARTIFACT_DOCKER): $(TIDB_SOURCE) $(TIKV_SOURCE) $(PD_SOURCE)
 	mkdir -p $(ARTIFACT_DIR)
-
-$(ARTIFACT_DOCKER): $(ARTIFACT_DIR) source
-ifeq ($(TAG),)
-	# currently we only support build with tags specified.
-	echo TAG must be specified
-	exit 1
-endif
 	bash ./scripts/gen-builder-dockerfile.sh $(TAG) | docker build -t ${DOCKER_IMAGE_NAME} -f - .
 	docker save ${DOCKER_IMAGE_NAME} | gzip > ${ARTIFACT_DOCKER}
 
 .PHONY: docker
-docker: source $(ARTIFACT_DIR) $(ARTIFACT_DOCKER)
+docker: check source $(ARTIFACT_DOCKER)
 
 .PHONY: rpm
-rpm: $(ARTIFACT_BINARY)
+rpm: check $(ARTIFACT_BINARY)
 	bash scripts/gen-rpm-spec.sh $(TAG) > ${ARTIFACT_DIR}/rpm-spec
 	docker build -t tidb-rpm-builder:${TAG} -f etc/dockerfile/builder-rpm.dockerfile .
 	docker run \
@@ -94,7 +100,7 @@ $(ARTIFACT_PACKAGE): $(ARTIFACT_BINARY)
 	install -D -m 0644 etc/service/pd-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/pd.service
 	mkdir -p ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/pd
 .PHONY: deb
-deb: $(ARTIFACT_PACKAGE)
+deb: check $(ARTIFACT_PACKAGE)
 	bash scripts/gen-deb-control.sh $(TAG) | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
 	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/preinst
 	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/postinst
