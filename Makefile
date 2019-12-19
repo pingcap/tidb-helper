@@ -29,6 +29,7 @@ define fetch_source
 		git clone $(2).git $(1); \
 	fi
 endef
+
 define update_source_tag
 	$(eval remote = $(shell cd $(1) && git remote -v | grep fetch | grep $(2) | cut -f1))
 	cd $(1) && git fetch $(remote) $(3) && git checkout $(3)
@@ -68,21 +69,21 @@ ifdef TAG
 	$(call update_source_tag, $(PD_SOURCE),$(GIT_URL_PD), v$(TAG))
 endif
 	docker run \
-		-v $(shell realpath $(TIDB_SOURCE)):/build/tidb \
-		-v $(shell realpath $(TIKV_SOURCE)):/build/tikv \
-		-v $(shell realpath $(PD_SOURCE)):/build/pd \
+		-v $(realpath $(TIDB_SOURCE)):/build/tidb \
+		-v $(realpath $(TIKV_SOURCE)):/build/tikv \
+		-v $(realpath $(PD_SOURCE)):/build/pd \
 		-v $(CURDIR)/scripts/build.sh:/build.sh \
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/out \
 		$(BUILDER_IMAGE_BINARY) /build.sh
 
-$(ARTIFACT_DOCKER): source docker-builder $(ARTIFACT_BINARY)
+$(ARTIFACT_DOCKER): $(ARTIFACT_BINARY)
 	mkdir -p $(ARTIFACT_DIR)
 	bash ./scripts/gen-image-dockerfile.sh $(TAG) | docker build -t ${DOCKER_IMAGE_TAG} -f - .
 	docker save ${DOCKER_IMAGE_TAG} | gzip > ${ARTIFACT_DOCKER}
 
-.PHONY: docker docker-builer build-prepare
+.PHONY: build-prepare docker docker-builder
 build-prepare: check source docker-builder
-docker: check source $(ARTIFACT_DOCKER)
+docker: build-prepare $(ARTIFACT_DOCKER)
 
 docker-builder:
 ifeq ($(shell docker images -q $(BUILDER_IMAGE_BINARY)),)
