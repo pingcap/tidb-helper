@@ -31,7 +31,7 @@ define fetch_source
 endef
 define update_source_tag
 	$(eval remote = $(shell cd $(1) && git remote -v | grep fetch | grep $(2) | cut -f1))
-    cd $(1) && git fetch $(remote) $(3) && git checkout $(3)
+	cd $(1) && git fetch $(remote) $(3) && git checkout $(3)
 endef
 
 $(BUILD_DIR):
