@@ -14,6 +14,9 @@ GIT_URL_TIKV=$(GIT_REPO_BASE_URL)/$(ORG_TIKV)/$(PROJECT_TIKV)$(GIT_POSTFIX)
 GIT_URL_PD=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_PD)$(GIT_POSTFIX)
 BUILD_DIR=build
 SOURCE_DIR=$(BUILD_DIR)/src
+TIDB_SOURCE=$(SOURCE_DIR)/$(PROJECT_TIDB)
+TIKV_SOURCE=$(SOURCE_DIR)/$(PROJECT_TIKV)
+PD_SOURCE=$(SOURCE_DIR)/$(PROJECT_PD)
 BINARY_DIR=$(BUILD_DIR)/bin
 ARTIFACT_BINARY=$(BINARY_DIR)/$(VERSION)
 ARTIFACT_DIR=$(BUILD_DIR)/dist
@@ -25,23 +28,6 @@ BUILDER_PREFIX=tidb-builder
 BUILDER_IMAGE_BINARY=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-binary
 BUILDER_IMAGE_RPM=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-rpm
 BUILDER_IMAGE_DEB=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-deb
-
-# use realpath for source directory, so we can use it as docker volume
-ifndef TIDB_SOURCE
-	TIDB_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_TIDB))
-else
-	override TIDB_SOURCE=$(realpath $(TIDB_SOURCE))
-endif
-ifndef TIKV_SOURCE
-	TIKV_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_TIKV))
-else
-	override TIKV_SOURCE=$(realpath $(TIKV_SOURCE))
-endif
-ifndef PD_SOURCE
-	PD_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_PD))
-else
-	override PD_SOURCE=$(realpath $(PD_SOURCE))
-endif
 
 define fetch_source
 	@if [ ! -d $(1)/.git ]; then\
@@ -119,16 +105,18 @@ ifeq ($(shell docker images -q $(BUILDER_IMAGE_RPM)),)
 	docker build -t $(BUILDER_IMAGE_RPM) -f etc/dockerfile/builder-rpm.dockerfile .
 endif
 	bash scripts/gen-rpm-spec.sh $(VERSION) > ${ARTIFACT_DIR}/rpm-spec
-	@echo $(TIDB_SOURCE)
+	tidb_path = $(realpath $(TIDB_SOURCE))
+	tikv_path = $(realpath $(TIKV_SOURCE))
+	pd_path = $(realpath $(PD_SOURCE))
 	docker run \
 		--rm \
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/root/rpmbuild/SOURCES/bin \
 		-v $(CURDIR)/etc/service:/root/rpmbuild/SOURCES/service \
-		-v $(TIDB_SOURCE)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
-		-v $(TIKV_SOURCE)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
-		-v $(PD_SOURCE)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
-		-v $(TIDB_SOURCE)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
-		-v $(TIDB_SOURCE)/README.md:/root/rpmbuild/BUILD/README.md \
+		-v $(tidb_path)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
+		-v $(tikv_path)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
+		-v $(pd_path)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
+		-v $(tidb_path)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
+		-v $(tidb_path)/README.md:/root/rpmbuild/BUILD/README.md \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
 		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/x86_64/ \
 		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb.spec
