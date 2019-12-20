@@ -105,9 +105,9 @@ ifeq ($(shell docker images -q $(BUILDER_IMAGE_RPM)),)
 	docker build -t $(BUILDER_IMAGE_RPM) -f etc/dockerfile/builder-rpm.dockerfile .
 endif
 	bash scripts/gen-rpm-spec.sh $(VERSION) > ${ARTIFACT_DIR}/rpm-spec
-	tidb_path = $(realpath $(TIDB_SOURCE))
-	tikv_path = $(realpath $(TIKV_SOURCE))
-	pd_path = $(realpath $(PD_SOURCE))
+	$(eval tidb_path = $(realpath $(TIDB_SOURCE)))
+	$(eval tikv_path = $(realpath $(TIKV_SOURCE)))
+	$(eval pd_path = $(realpath $(PD_SOURCE)))
 	docker run \
 		--rm \
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/root/rpmbuild/SOURCES/bin \
