@@ -1,33 +1,52 @@
+ifdef TAG
+	VERSION = $(subst v,,$(TAG))
+endif
+
 PROJECT_TIDB=tidb
 PROJECT_TIKV=tikv
 PROJECT_PD=pd
 ORG_PINGCAP=pingcap
 ORG_TIKV=tikv
 GIT_REPO_BASE_URL=https://github.com
-GIT_URL_TIDB=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_TIDB)
-GIT_URL_TIKV=$(GIT_REPO_BASE_URL)/$(ORG_TIKV)/$(PROJECT_TIKV)
-GIT_URL_PD=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_PD)
+GIT_POSTFIX=.git
+GIT_URL_TIDB=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_TIDB)$(GIT_POSTFIX)
+GIT_URL_TIKV=$(GIT_REPO_BASE_URL)/$(ORG_TIKV)/$(PROJECT_TIKV)$(GIT_POSTFIX)
+GIT_URL_PD=$(GIT_REPO_BASE_URL)/$(ORG_PINGCAP)/$(PROJECT_PD)$(GIT_POSTFIX)
 BUILD_DIR=build
 SOURCE_DIR=$(BUILD_DIR)/src
-TIDB_SOURCE=$(SOURCE_DIR)/$(PROJECT_TIDB)
-TIKV_SOURCE=$(SOURCE_DIR)/$(PROJECT_TIKV)
-PD_SOURCE=$(SOURCE_DIR)/$(PROJECT_PD)
 BINARY_DIR=$(BUILD_DIR)/bin
-ARTIFACT_BINARY=$(BINARY_DIR)/$(TAG)
+ARTIFACT_BINARY=$(BINARY_DIR)/$(VERSION)
 ARTIFACT_DIR=$(BUILD_DIR)/dist
-DOCKER_IMAGE_NAME=tidb-docker
-DOCKER_IMAGE_TAG=$(ORG_PINGCAP)/$(DOCKER_IMAGE_NAME):$(TAG)
-ARTIFACT_DOCKER=${ARTIFACT_DIR}/$(DOCKER_IMAGE_NAME)-$(TAG).tar.gz
+TIDB_DOCKER_IMAGE_NAME=tidb-docker
+TIDB_DOCKER_IMAGE_TAG=$(ORG_PINGCAP)/$(TIDB_DOCKER_IMAGE_NAME):$(VERSION)
+ARTIFACT_DOCKER=${ARTIFACT_DIR}/$(TIDB_DOCKER_IMAGE_NAME)-$(VERSION).tar.gz
 ARTIFACT_PACKAGE=$(ARTIFACT_DIR)/tidb-pkg
 BUILDER_PREFIX=tidb-builder
 BUILDER_IMAGE_BINARY=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-binary
 BUILDER_IMAGE_RPM=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-rpm
 BUILDER_IMAGE_DEB=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-deb
 
+# use realpath for source directory, so we can use it as docker volume
+ifndef TIDB_SOURCE
+	TIDB_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_TIDB))
+else
+	override TIDB_SOURCE=$(realpath $(TIDB_SOURCE))
+endif
+ifndef TIKV_SOURCE
+	TIKV_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_TIKV))
+else
+	override TIKV_SOURCE=$(realpath $(TIKV_SOURCE))
+endif
+ifndef PD_SOURCE
+	PD_SOURCE=$(realpath $(SOURCE_DIR)/$(PROJECT_PD))
+else
+	override PD_SOURCE=$(realpath $(PD_SOURCE))
+endif
+
 define fetch_source
 	@if [ ! -d $(1)/.git ]; then\
 		mkdir -p $(1); \
-		git clone $(2).git $(1); \
+		git clone $(2) $(1); \
 	fi
 endef
 
@@ -62,12 +81,15 @@ source: TIDB_SOURCE TIKV_SOURCE PD_SOURCE
 .PHONY: binary
 binary: build-prepare $(ARTIFACT_BINARY)
 
+$(ARTIFACT_DIR):
+	mkdir -p $(ARTIFACT_DIR)
+
 $(ARTIFACT_BINARY):
 # checkout and update source code here
 ifdef TAG
-	$(call update_source_tag, $(TIDB_SOURCE),$(GIT_URL_TIDB), v$(TAG))
-	$(call update_source_tag, $(TIKV_SOURCE),$(GIT_URL_TIKV), v$(TAG))
-	$(call update_source_tag, $(PD_SOURCE),$(GIT_URL_PD), v$(TAG))
+	$(call update_source_tag, $(TIDB_SOURCE),$(GIT_URL_TIDB), $(TAG))
+	$(call update_source_tag, $(TIKV_SOURCE),$(GIT_URL_TIKV), $(TAG))
+	$(call update_source_tag, $(PD_SOURCE),$(GIT_URL_PD), $(TAG))
 endif
 	docker run \
 		-v $(realpath $(TIDB_SOURCE)):/build/tidb \
@@ -77,10 +99,10 @@ endif
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/out \
 		$(BUILDER_IMAGE_BINARY) /build.sh
 
-$(ARTIFACT_DOCKER): $(ARTIFACT_BINARY)
+$(ARTIFACT_DOCKER): $(ARTIFACT_BINARY) $(ARTIFACT_DIR)
 	mkdir -p $(ARTIFACT_DIR)
-	bash ./scripts/gen-image-dockerfile.sh $(TAG) | docker build -t ${DOCKER_IMAGE_TAG} -f - .
-	docker save ${DOCKER_IMAGE_TAG} | gzip > ${ARTIFACT_DOCKER}
+	bash ./scripts/gen-image-dockerfile.sh $(VERSION) | docker build -t ${TIDB_DOCKER_IMAGE_TAG} -f - .
+	docker save ${TIDB_DOCKER_IMAGE_TAG} | gzip > ${ARTIFACT_DOCKER}
 
 .PHONY: build-prepare docker docker-builder
 build-prepare: check source docker-builder
@@ -92,20 +114,21 @@ ifeq ($(shell docker images -q $(BUILDER_IMAGE_BINARY)),)
 endif
 
 .PHONY: rpm deb
-rpm: build-prepare $(ARTIFACT_BINARY)
+rpm: build-prepare $(ARTIFACT_BINARY) $(ARTIFACT_DIR)
 ifeq ($(shell docker images -q $(BUILDER_IMAGE_RPM)),)
 	docker build -t $(BUILDER_IMAGE_RPM) -f etc/dockerfile/builder-rpm.dockerfile .
 endif
-	bash scripts/gen-rpm-spec.sh $(TAG) > ${ARTIFACT_DIR}/rpm-spec
+	bash scripts/gen-rpm-spec.sh $(VERSION) > ${ARTIFACT_DIR}/rpm-spec
+	@echo $(TIDB_SOURCE)
 	docker run \
 		--rm \
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/root/rpmbuild/SOURCES/bin \
 		-v $(CURDIR)/etc/service:/root/rpmbuild/SOURCES/service \
-		-v $(CURDIR)/build/tidb/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
-		-v $(CURDIR)/build/tikv/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
-		-v $(CURDIR)/build/pd/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
-		-v $(CURDIR)/build/tidb/LICENSE:/root/rpmbuild/BUILD/LICENSE \
-		-v $(CURDIR)/build/tidb/README.md:/root/rpmbuild/BUILD/README.md \
+		-v $(TIDB_SOURCE)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
+		-v $(TIKV_SOURCE)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
+		-v $(PD_SOURCE)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
+		-v $(TIDB_SOURCE)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
+		-v $(TIDB_SOURCE)/README.md:/root/rpmbuild/BUILD/README.md \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
 		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/x86_64/ \
 		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb.spec
@@ -118,19 +141,19 @@ $(ARTIFACT_PACKAGE): $(ARTIFACT_BINARY)
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-server ${ARTIFACT_PACKAGE}/usr/bin/pd-server
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-ctl ${ARTIFACT_PACKAGE}/usr/bin/pd-ctl
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-recover ${ARTIFACT_PACKAGE}/usr/bin/pd-recover
-	install -D -m 0644 build/tidb/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml.example
-	install -D -m 0644 build/tikv/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml.example
-	install -D -m 0644 build/pd/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml.example
+	install -D -m 0644 $(TIDB_SOURCE)/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml.example
+	install -D -m 0644 $(TIKV_SOURCE)/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml.example
+	install -D -m 0644 $(PD_SOURCE)/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml.example
 	install -D -m 0644 etc/service/tidb-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tidb.service
 	install -D -m 0644 etc/service/tikv-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tikv.service
 	install -D -m 0644 etc/service/pd-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/pd.service
 	mkdir -p ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/tikv ${ARTIFACT_PACKAGE}/var/lib/pd
 
-deb: build-prepare $(ARTIFACT_PACKAGE)
+deb: build-prepare $(ARTIFACT_PACKAGE) $(ARTIFACT_DIR)
 ifeq ($(shell docker images -q $(BUILDER_IMAGE_DEB)),)
 	docker build -t $(BUILDER_IMAGE_DEB) -f etc/dockerfile/builder-deb.dockerfile scripts
 endif
-	bash scripts/gen-deb-control.sh $(TAG) | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
+	bash scripts/gen-deb-control.sh $(VERSION) | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
 	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/preinst
 	install -D -m 0755 etc/deb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/postinst
 	docker run \
@@ -144,7 +167,7 @@ clean-dist:
 	rm -rf build/dist
 
 clean-bin:
-	rm -rf build/bin/$(TAG)
+	rm -rf $(ARTIFACT_BINARY)
 
 clean:
 	rm -rf build
