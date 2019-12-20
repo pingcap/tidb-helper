@@ -1,15 +1,15 @@
 [Unit]
-Description=TiKV, a distributed transactional key value store.
+Description=TiKV server daemon
 Wants=network-online.target
 
 [Service]
 User=tidb
-ExecStart=/usr/bin/tikv-server --config $CONFIGURATION_DIRECTORY/tikv/config.toml
+Group=tidb
+ExecStart=/usr/bin/tikv-server --config /etc/tikv/config.toml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
 LimitNOFILE=1024
-ConfigurationDirectory=tikv
 WorkingDirectory=/var/lib/tikv/
 
 [Install]

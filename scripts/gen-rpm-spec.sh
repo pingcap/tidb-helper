@@ -49,18 +49,18 @@ TiDB features:
 %{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/tikv
 %{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/pd
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tidb-server  \$RPM_BUILD_ROOT%{_bindir}/tidb-server
-%{__install} -D -m 0644 %{_sourcedir}/config/tidb/config.toml.example \$RPM_BUILD_ROOT%{_sysconfdir}/tidb/config.toml.example
+%{__install} -D -m 0644 %{_sourcedir}/config/tidb/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/tidb/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/tidb-server.service \$RPM_BUILD_ROOT%{_unitdir}/tidb-server.service
 
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-server \$RPM_BUILD_ROOT%{_bindir}/tikv-server
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-ctl \$RPM_BUILD_ROOT%{_bindir}/tikv-ctl
-%{__install} -D -m 0644 %{_sourcedir}/config/tikv/config.toml.example \$RPM_BUILD_ROOT%{_sysconfdir}/tikv/config.toml.example
+%{__install} -D -m 0644 %{_sourcedir}/config/tikv/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/tikv/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/tikv-server.service \$RPM_BUILD_ROOT%{_unitdir}/tikv-server.service
 
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-server \$RPM_BUILD_ROOT%{_bindir}/pd-server
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-recover \$RPM_BUILD_ROOT%{_bindir}/pd-recover
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-ctl \$RPM_BUILD_ROOT%{_bindir}/pd-ctl
-%{__install} -D -m 0644 %{_sourcedir}/config/pd/config.toml.example \$RPM_BUILD_ROOT%{_sysconfdir}/pd/config.toml.example
+%{__install} -D -m 0644 %{_sourcedir}/config/pd/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/pd/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/pd-server.service \$RPM_BUILD_ROOT%{_unitdir}/pd-server.service
 
 %clean
@@ -87,7 +87,7 @@ exit 0
 %files
 %{_bindir}/tidb-server
 %{_unitdir}/tidb-server.service
-%config %{_sysconfdir}/tidb/config.toml.example
+%config %{_sysconfdir}/tidb/config.toml
 %dir %{_sysconfdir}/tidb
 %dir %attr(0755, tidb, tidb) %{_sharedstatedir}/tidb
 %dir %attr(0755, tidb, tidb) %{_localstatedir}/log/tidb
@@ -95,7 +95,7 @@ exit 0
 %{_bindir}/tikv-server
 %{_bindir}/tikv-ctl
 %{_unitdir}/tikv-server.service
-%config %{_sysconfdir}/tikv/config.toml.example
+%config %{_sysconfdir}/tikv/config.toml
 %dir %{_sysconfdir}/tikv
 %dir %attr(0755, tidb, tidb) %{_sharedstatedir}/tikv
 %dir %attr(0755, tidb, tidb) %{_localstatedir}/log/tikv
@@ -104,7 +104,7 @@ exit 0
 %{_bindir}/pd-ctl
 %{_bindir}/pd-recover
 %{_unitdir}/pd-server.service
-%config %{_sysconfdir}/pd/config.toml.example
+%config %{_sysconfdir}/pd/config.toml
 %dir %{_sysconfdir}/pd
 %dir %attr(0755, tidb, tidb) %{_sharedstatedir}/pd
 %dir %attr(0755, tidb, tidb) %{_localstatedir}/log/pd

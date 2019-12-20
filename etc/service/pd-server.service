@@ -1,14 +1,14 @@
 [Unit]
-Description=PD is the abbreviation for Placement Driver. It is used to manage and schedule the TiKV cluster.
+Description=PD server daemon
 Wants=network-online.target
 
 [Service]
 User=tidb
-ExecStart=/usr/bin/pd-server --config $CONFIGURATION_DIRECTORY/pd/config.toml
+Group=tidb
+ExecStart=/usr/bin/pd-server --config /etc/pd/config.toml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
-ConfigurationDirectory=pd
 WorkingDirectory=/var/lib/pd/
 
 [Install]

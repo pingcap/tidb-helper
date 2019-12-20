@@ -112,9 +112,9 @@ endif
 		--rm \
 		-v $(CURDIR)/${ARTIFACT_BINARY}:/root/rpmbuild/SOURCES/bin \
 		-v $(CURDIR)/etc/service:/root/rpmbuild/SOURCES/service \
-		-v $(tidb_path)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml.example \
-		-v $(tikv_path)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml.example \
-		-v $(pd_path)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml.example \
+		-v $(tidb_path)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml \
+		-v $(tikv_path)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml \
+		-v $(pd_path)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml \
 		-v $(tidb_path)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
 		-v $(tidb_path)/README.md:/root/rpmbuild/BUILD/README.md \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
@@ -129,9 +129,9 @@ $(ARTIFACT_PACKAGE): $(ARTIFACT_BINARY)
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-server ${ARTIFACT_PACKAGE}/usr/bin/pd-server
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-ctl ${ARTIFACT_PACKAGE}/usr/bin/pd-ctl
 	install -D -m 0755 $(ARTIFACT_BINARY)/pd-recover ${ARTIFACT_PACKAGE}/usr/bin/pd-recover
-	install -D -m 0644 $(TIDB_SOURCE)/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml.example
-	install -D -m 0644 $(TIKV_SOURCE)/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml.example
-	install -D -m 0644 $(PD_SOURCE)/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml.example
+	install -D -m 0644 $(TIDB_SOURCE)/config/config.toml.example ${ARTIFACT_PACKAGE}/etc/tidb/config.toml
+	install -D -m 0644 $(TIKV_SOURCE)/etc/config-template.toml ${ARTIFACT_PACKAGE}/etc/tikv/config.toml
+	install -D -m 0644 $(PD_SOURCE)/conf/config.toml ${ARTIFACT_PACKAGE}/etc/pd/config.toml
 	install -D -m 0644 etc/service/tidb-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tidb.service
 	install -D -m 0644 etc/service/tikv-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/tikv.service
 	install -D -m 0644 etc/service/pd-server.service ${ARTIFACT_PACKAGE}/usr/lib/systemd/system/pd.service
