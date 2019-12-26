@@ -1,0 +1,16 @@
+[Unit]
+Description=tidb-lightning daemon
+Wants=network-online.target
+
+[Service]
+User=tidb
+Group=tidb
+ExecStart=/usr/bin/tidb-lightning --config /etc/tidb-lightning/tidb-lightning.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGINT
+LimitNOFILE=1024
+WorkingDirectory=/var/lib/tidb-lightning/
+
+[Install]
+WantedBy=multi-user.target

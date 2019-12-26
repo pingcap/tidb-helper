@@ -1,0 +1,16 @@
+[Unit]
+Description=TiKV importer daemon
+Wants=network-online.target
+
+[Service]
+User=tidb
+Group=tidb
+ExecStart=/usr/bin/tikv-importer --config /etc/tikv-importer/tikv-importer.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGINT
+LimitNOFILE=1024
+WorkingDirectory=/var/lib/tikv-importer/
+
+[Install]
+WantedBy=multi-user.target

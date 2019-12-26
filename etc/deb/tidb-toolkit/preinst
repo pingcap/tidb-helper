@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
 
-if ! getent passwd tikv >/dev/null; then
+if ! getent passwd tidb >/dev/null; then
 	useradd -r -M -g tidb -s /sbin/nologin -d /var/lib/tidb tidb
 fi

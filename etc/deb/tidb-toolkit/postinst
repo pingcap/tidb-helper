@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+chown -R tidb /var/lib/tidb-lightning
+chown -R tidb /var/lib/tikv-importer
+chown -R tidb /var/lib/sync_diff_inspector
