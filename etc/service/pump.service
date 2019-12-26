@@ -1,0 +1,15 @@
+[Unit]
+Description=Pump daemon
+Wants=network-online.target
+
+[Service]
+User=tidb
+Group=tidb
+ExecStart=/usr/bin/pump --config /etc/pump/pump.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGINT
+WorkingDirectory=/var/lib/pump/
+
+[Install]
+WantedBy=multi-user.target

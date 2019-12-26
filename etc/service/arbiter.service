@@ -1,0 +1,16 @@
+[Unit]
+Description=Arbiter daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=tidb
+Group=tidb
+ExecStart=/usr/bin/arbiter --config /etc/arbiter/arbiter.toml
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+Restart=on-failure
+WorkingDirectory=/var/lib/reparo/
+
+[Install]
+WantedBy=multi-user.target

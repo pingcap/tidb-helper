@@ -42,26 +42,55 @@ TiDB features:
 
 %install
 %{__mkdir} -p \$RPM_BUILD_ROOT%{_bindir}
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/tidb
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/tikv
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/pd
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/tidb
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/tikv
-%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/pd
+
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tidb-server  \$RPM_BUILD_ROOT%{_bindir}/tidb-server
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/tidb-ctl  \$RPM_BUILD_ROOT%{_bindir}/tidb-ctl
 %{__install} -D -m 0644 %{_sourcedir}/config/tidb/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/tidb/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/tidb-server.service \$RPM_BUILD_ROOT%{_unitdir}/tidb-server.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/tidb
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/tidb
 
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-server \$RPM_BUILD_ROOT%{_bindir}/tikv-server
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/tikv-ctl \$RPM_BUILD_ROOT%{_bindir}/tikv-ctl
 %{__install} -D -m 0644 %{_sourcedir}/config/tikv/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/tikv/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/tikv-server.service \$RPM_BUILD_ROOT%{_unitdir}/tikv-server.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/tikv
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/tikv
 
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-server \$RPM_BUILD_ROOT%{_bindir}/pd-server
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-recover \$RPM_BUILD_ROOT%{_bindir}/pd-recover
 %{__install} -D -p -m 0755 %{_sourcedir}/bin/pd-ctl \$RPM_BUILD_ROOT%{_bindir}/pd-ctl
 %{__install} -D -m 0644 %{_sourcedir}/config/pd/config.toml \$RPM_BUILD_ROOT%{_sysconfdir}/pd/config.toml
 %{__install} -D -m 0644 %{_sourcedir}/service/pd-server.service \$RPM_BUILD_ROOT%{_unitdir}/pd-server.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/pd
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/pd
+
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/etcdctl \$RPM_BUILD_ROOT%{_bindir}/etcdctl
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/binlogctl \$RPM_BUILD_ROOT%{_bindir}/binlogctl
+
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/arbiter \$RPM_BUILD_ROOT%{_bindir}/arbiter
+%{__install} -D -m 0644 %{_sourcedir}/config/arbiter/arbiter.toml \$RPM_BUILD_ROOT%{_sysconfdir}/arbiter/arbiter.toml
+%{__install} -D -m 0644 %{_sourcedir}/service/arbiter.service \$RPM_BUILD_ROOT%{_unitdir}/arbiter.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/arbiter
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/arbiter
+
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/drainer \$RPM_BUILD_ROOT%{_bindir}/drainer
+%{__install} -D -m 0644 %{_sourcedir}/config/drainer/drainer.toml \$RPM_BUILD_ROOT%{_sysconfdir}/drainer/drainer.toml
+%{__install} -D -m 0644 %{_sourcedir}/service/drainer.service \$RPM_BUILD_ROOT%{_unitdir}/drainer.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/drainer
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/drainer
+
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/pump \$RPM_BUILD_ROOT%{_bindir}/pump
+%{__install} -D -m 0644 %{_sourcedir}/config/pump/pump.toml \$RPM_BUILD_ROOT%{_sysconfdir}/pump/pump.toml
+%{__install} -D -m 0644 %{_sourcedir}/service/pump.service \$RPM_BUILD_ROOT%{_unitdir}/pump.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/pump
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/pump
+
+%{__install} -D -p -m 0755 %{_sourcedir}/bin/reparo \$RPM_BUILD_ROOT%{_bindir}/reparo
+%{__install} -D -m 0644 %{_sourcedir}/config/reparo/reparo.toml \$RPM_BUILD_ROOT%{_sysconfdir}/reparo/reparo.toml
+%{__install} -D -m 0644 %{_sourcedir}/service/reparo.service \$RPM_BUILD_ROOT%{_unitdir}/reparo.service
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_sharedstatedir}/reparo
+%{__mkdir} -p \$RPM_BUILD_ROOT%{_localstatedir}/log/reparo
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -75,17 +104,24 @@ exit 0
 %systemd_post tidb-server.service
 %systemd_post tikv-server.service
 %systemd_post pd-server.service
+%systemd_post arbiter.service
+%systemd_post drainer.service
+%systemd_post pump.service
 
 %preun
 %systemd_preun tidb-server.service
 %systemd_preun tikv-server.service
 %systemd_preun pd-server.service
+%systemd_preun arbiter.service
+%systemd_preun drainer.service
+%systemd_preun pump.service
 
 %postun
 %systemd_postun_with_restart tidb-server.service
 
 %files
 %{_bindir}/tidb-server
+%{_bindir}/tidb-ctl
 %{_unitdir}/tidb-server.service
 %config(noreplace) %{_sysconfdir}/tidb/config.toml
 %dir %{_sysconfdir}/tidb
@@ -108,6 +144,33 @@ exit 0
 %dir %{_sysconfdir}/pd
 %dir %attr(0755, tidb, tidb) %{_sharedstatedir}/pd
 %dir %attr(0755, tidb, tidb) %{_localstatedir}/log/pd
+
+%{_bindir}/binlogctl
+%{_bindir}/etcdctl
+
+%{_bindir}/arbiter
+%{_unitdir}/arbiter.service
+%config(noreplace) %{_sysconfdir}/arbiter/arbiter.toml
+%dir %attr(0755, tidb, tidb) %{_sharedstatedir}/arbiter
+%dir %attr(0755, tidb, tidb) %{_localstatedir}/log/arbiter
+
+%{_bindir}/drainer
+%{_unitdir}/drainer.service
+%config(noreplace) %{_sysconfdir}/drainer/drainer.toml
+%dir %attr(0755, tidb, tidb) %{_sharedstatedir}/drainer
+%dir %attr(0755, tidb, tidb) %{_localstatedir}/log/drainer
+
+%{_bindir}/pump
+%{_unitdir}/pump.service
+%config(noreplace) %{_sysconfdir}/pump/pump.toml
+%dir %attr(0755, tidb, tidb) %{_sharedstatedir}/pump
+%dir %attr(0755, tidb, tidb) %{_localstatedir}/log/pump
+
+%{_bindir}/reparo
+%{_unitdir}/reparo.service
+%config(noreplace) %{_sysconfdir}/reparo/reparo.toml
+%dir %attr(0755, tidb, tidb) %{_sharedstatedir}/reparo
+%dir %attr(0755, tidb, tidb) %{_localstatedir}/log/reparo
 
 %doc README.md
 %license LICENSE

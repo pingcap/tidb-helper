@@ -1,0 +1,15 @@
+[Unit]
+Description=Reparo daemon
+Wants=network-online.target
+
+[Service]
+User=tidb
+Group=tidb
+ExecStart=/usr/bin/reparo --config /etc/reparo/reparo.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGINT
+WorkingDirectory=/var/lib/reparo/
+
+[Install]
+WantedBy=multi-user.target

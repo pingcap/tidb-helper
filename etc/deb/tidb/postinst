@@ -4,3 +4,7 @@ set -e
 chown -R tidb /var/lib/tidb
 chown -R tidb /var/lib/tikv
 chown -R tidb /var/lib/pd
+chown -R tidb /var/lib/arbiter
+chown -R tidb /var/lib/drainer
+chown -R tidb /var/lib/pump
+chown -R tidb /var/lib/reparo
