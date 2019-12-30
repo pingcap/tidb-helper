@@ -1,6 +1,6 @@
 # Quick Start
 
-### Topology
+## Topology
 
 | Name  | Host IP | Services |
 | :-- | :-- | :-------------- |
@@ -8,7 +8,7 @@
 | Node2 | 192.168.0.2 | PD2, TiKV2 |
 | Node3 | 192.168.0.3 | PD3, TiKV3 |
 
-### Install
+## Install
 
 #### RHEL/CentOS/Fedora
 
@@ -21,7 +21,7 @@ yum install -y tidb;
 
     TODO
 
-### Prepare
+## Prepare
 
 #### Stop firewalld
 
@@ -29,7 +29,7 @@ yum install -y tidb;
 systemctl stop firewalld
 ```
 
-### Setup PD Cluster
+## Setup PD Cluster
 
 #### Config
 
@@ -54,7 +54,7 @@ On **Node1**, **Node2**, **Node3**:
 systemctl start pd-server
 ```
 
-### Setup TiKV
+## Setup TiKV
 
 #### Config
 
@@ -84,7 +84,7 @@ On **Node1**, **Node2**, **Node3**:
 systemctl start tikv-server
 ```
 
-### Setup TiDB
+## Setup TiDB
 
 #### Config
 
@@ -109,7 +109,7 @@ On **Node1**:
 systemctl start tidb-server
 ```
 
-### Test
+## Test
 
 ```bash
 mysql -h 192.168.0.1 -u root -P 4000 -D test
