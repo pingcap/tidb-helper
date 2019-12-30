@@ -9,7 +9,7 @@ ExecStart=/usr/bin/tikv-server --config /etc/tikv/config.toml
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
-LimitNOFILE=1024
+LimitNOFILE=100000
 WorkingDirectory=/var/lib/tikv/
 
 [Install]
