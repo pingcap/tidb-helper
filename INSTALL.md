@@ -33,7 +33,7 @@ systemctl stop firewalld
 
 ##### Config
 
-Edit /etc/pd/config.toml on **Node1**, **Node2**, **Node3**:
+Edit */etc/pd/config.toml* on **Node1**, **Node2**, **Node3**:
 
 ```toml
 name = "pd1"  # pd2 for Node2, pd3 for Node3
@@ -63,7 +63,7 @@ Edit  */etc/tikv/config.toml* on **Node1**, **Node2**, **Node3**:
 ```toml
 log-file = "/var/log/tikv/tikv.log"
 
-# Use: http://192.168.0.2:20160 for Node2, http://192.168.0.3 for Node3
+# Use 192.168.0.2 for Node2, 192.168.0.3 for Node3
 [server]
 addr = "192.168.0.1:20160"
 status-addr = "192.168.0.1:20180"
@@ -77,6 +77,8 @@ endpoints = ["192.168.0.1:2379", "192.168.0.2:2379", "192.168.0.3:2379"]
 ```
 
 ##### Start
+
+On **Node1**, **Node2**, **Node3**:
 
 ```bash
 systemctl start tikv-server
@@ -100,6 +102,8 @@ filename = "/var/log/tidb/tidb.log"
 ```
 
 ##### Start
+
+On **Node1**:
 
 ```bash
 systemctl start tidb-server
