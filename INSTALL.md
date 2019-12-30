@@ -10,20 +10,20 @@
 
 ### Install
 
-##### RHEL/CentOS/Fedora
+#### RHEL/CentOS/Fedora
 
 ```bash
 curl 'https://repo.pingcap.org/yum/TiDB.repo' -o /etc/yum.repos.d/TiDB.repo;
 yum install -y tidb;
 ```
 
-##### Debian/Ubuntu
+#### Debian/Ubuntu
 
     TODO
 
 ### Prepare
 
-##### Stop firewalld
+#### Stop firewalld
 
 ```bash
 systemctl stop firewalld
@@ -31,7 +31,7 @@ systemctl stop firewalld
 
 ### Setup PD Cluster
 
-##### Config
+#### Config
 
 Edit */etc/pd/config.toml* on **Node1**, **Node2**, **Node3**:
 
@@ -46,7 +46,7 @@ initial-cluster = "pd1=http://192.168.0.1:2380,pd2=http://192.168.0.2:2380,pd3=h
 filename = "/var/log/pd/pd.log"
 ```
 
-##### Start
+#### Start
 
 On **Node1**, **Node2**, **Node3**:
 
@@ -56,7 +56,7 @@ systemctl start pd-server
 
 ### Setup TiKV
 
-##### Config
+#### Config
 
 Edit  */etc/tikv/config.toml* on **Node1**, **Node2**, **Node3**:
 
@@ -76,7 +76,7 @@ endpoints = ["192.168.0.1:2379", "192.168.0.2:2379", "192.168.0.3:2379"]
 
 ```
 
-##### Start
+#### Start
 
 On **Node1**, **Node2**, **Node3**:
 
@@ -86,7 +86,7 @@ systemctl start tikv-server
 
 ### Setup TiDB
 
-###### Config
+#### Config
 
 Edit /etc/tidb/config.toml on **Node1**
 
@@ -101,7 +101,7 @@ slow-query-file = "/var/log/tidb/tidb-slow.log"
 filename = "/var/log/tidb/tidb.log"
 ```
 
-##### Start
+#### Start
 
 On **Node1**:
 
