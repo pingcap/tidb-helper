@@ -19,7 +19,7 @@ yum install -y tidb;
 
 #### Debian/Ubuntu
 
-    TODO
+TODO
 
 ## Prepare
 
