@@ -1,4 +1,4 @@
-# Quick Start
+# Install from distributions
 
 ## Topology
 
