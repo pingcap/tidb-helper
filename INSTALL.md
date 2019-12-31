@@ -13,7 +13,7 @@
 #### RHEL/CentOS/Fedora
 
 ```bash
-curl 'https://repo.pingcap.org/yum/TiDB.repo' -o /etc/yum.repos.d/TiDB.repo;
+curl -L 'https://repo.pingcap.org/yum/TiDB.repo' -o /etc/yum.repos.d/TiDB.repo;
 yum install -y tidb;
 ```
 
