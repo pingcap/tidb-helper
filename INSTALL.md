@@ -117,3 +117,7 @@ systemctl start tidb-server
 ```bash
 mysql -h 192.168.0.1 -u root -P 4000 -D test
 ```
+
+# Install from tarball
+
+[Doc](https://pingcap.com/docs/stable/how-to/deploy/from-tarball/production-environment/)
