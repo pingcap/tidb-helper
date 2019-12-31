@@ -36,10 +36,13 @@ systemctl stop firewalld
 Edit */etc/pd/config.toml* on **Node1**, **Node2**, **Node3**:
 
 ```toml
-name = "pd1"  # pd2 for Node2, pd3 for Node3
+# pd2 for Node2, pd3 for Node3
+name = "pd1"
 data-dir = "/var/lib/pd"
 
-peer-urls = "http://192.168.0.1:2380"  # 0.2 for Node2, 0.3 for Node3
+# 192.168.0.2 for Node2, 192.168.0.3 for Node3
+peer-urls = "http://192.168.0.1:2380"
+
 initial-cluster = "pd1=http://192.168.0.1:2380,pd2=http://192.168.0.2:2380,pd3=http://192.168.0.3:2380"
 
 [log.file]
