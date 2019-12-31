@@ -1,4 +1,4 @@
-# Install from distributions
+# Install via Package Manager
 
 ## Topology
 
@@ -118,6 +118,6 @@ systemctl start tidb-server
 mysql -h 192.168.0.1 -u root -P 4000 -D test
 ```
 
-# Install from tarball
+# Install via tarball
 
 [Doc](https://pingcap.com/docs/stable/how-to/deploy/from-tarball/production-environment/)
