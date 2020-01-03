@@ -11,6 +11,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGINT
 Restart=on-failure
 WorkingDirectory=/var/lib/tidb/
+LimitNOFILE=100000
 
 [Install]
 WantedBy=multi-user.target

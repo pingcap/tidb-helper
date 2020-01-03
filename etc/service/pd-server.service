@@ -10,6 +10,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 KillSignal=SIGINT
 WorkingDirectory=/var/lib/pd/
+LimitNOFILE=100000
 
 [Install]
 WantedBy=multi-user.target
