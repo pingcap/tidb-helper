@@ -69,7 +69,7 @@ define fetch_source
 endef
 
 define update_source_tag
-	cd $(1) && git fetch $(2) $(3) && git checkout $(3)
+	cd $(1) && git fetch $(2) tag $(3) && git checkout $(3)
 endef
 
 $(BUILD_DIR):
