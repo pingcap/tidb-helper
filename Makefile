@@ -2,6 +2,14 @@ ifdef TAG
 	VERSION = $(subst v,,$(TAG))
 endif
 
+ifeq ($(shell uname -m),aarch64)
+	ARCH=arm64 # For download
+	I_ARCH=aarch64 # For build rpm
+else
+	ARCH=amd64 # For download
+	I_ARCH=x86_64 # For build rpm
+endif
+
 PROJECT_TIDB=tidb
 PROJECT_TIDB_LIGHTNING=tidb-lightning
 PROJECT_TIDB_TOOLS=tidb-tools
@@ -123,8 +131,8 @@ source-tidb-toolkit: PD_SOURCE TIDB_LIGHTNING_SOURCE TIDB_TOOLS_SOURCE TIKV_IMPO
 
 .PHONY: binary
 binary: binary-tidb binary-tidb-tookit
-binary-tidb: build-prepare source-tidb $(ARTIFACT_BINARY_TIDB)
-binary-tidb-tookit: build-prepare source-tidb-toolkit $(ARTIFACT_BINARY_TOOLKIT)
+binary-tidb: source-tidb build-prepare $(ARTIFACT_BINARY_TIDB)
+binary-tidb-tookit: source-tidb-toolkit build-prepare $(ARTIFACT_BINARY_TOOLKIT)
 
 $(ARTIFACT_DIR):
 	mkdir -p $(ARTIFACT_DIR)
@@ -178,7 +186,7 @@ docker: build-prepare source-tidb $(ARTIFACT_DOCKER)
 
 docker-builder:
 ifeq ($(shell docker images -q $(BUILDER_IMAGE_BINARY)),)
-	bash ./scripts/gen-builder.sh $(shell cat $(TIKV_SOURCE)/rust-toolchain) | docker build -t $(BUILDER_IMAGE_BINARY) -f - .
+	bash ./scripts/gen-builder.sh $(shell cat $(TIKV_SOURCE)/rust-toolchain) $(ARCH) | docker build -t $(BUILDER_IMAGE_BINARY) -f - .
 endif
 
 .PHONY: rpm rpm-tidb rpm-tidb-toolkit
@@ -208,7 +216,7 @@ rpm-tidb: source-tidb $(ARTIFACT_BINARY_TIDB) $(ARTIFACT_DIR)
 		-v $(binlog_path)/cmd/pump/pump.toml:/root/rpmbuild/SOURCES/config/pump/pump.toml \
 		-v $(binlog_path)/cmd/reparo/reparo.toml:/root/rpmbuild/SOURCES/config/reparo/reparo.toml \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
-		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/x86_64/ \
+		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/$(I_ARCH)/ \
 		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb.spec
 	rm ${ARTIFACT_DIR}/rpm-spec
 
@@ -228,7 +236,7 @@ rpm-tidb-toolkit: source-tidb-toolkit $(ARTIFACT_BINARY_TOOLKIT) $(ARTIFACT_DIR)
 		-v $(tools_path)/sync_diff_inspector/config_sharding.toml:/root/rpmbuild/SOURCES/config/sync_diff_inspector/config_sharding.toml \
 		-v $(lightning_path)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
 		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb-toolkit.spec \
-		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/x86_64/ \
+		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/$(I_ARCH)/ \
 		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb-toolkit.spec
 	rm ${ARTIFACT_DIR}/rpm-spec
 

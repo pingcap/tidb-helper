@@ -17,8 +17,16 @@ if [ "$#" -ge "1" ];then
     rust_version="$1"
 fi
 
+# Make TiDB available on multiple arch
+pkg_arch=$2
+if [ "$pkg_arch" = "arm64" ];then
+  docker_image_name="arm64v8/centos:7"
+else
+  docker_image_name="centos:7.6.1810"
+fi
+
 cat <<EOT
-FROM centos:7.6.1810 as builder
+FROM ${docker_image_name} as builder
 RUN yum clean all && \
     yum makecache && \
     yum update -y && \
@@ -28,16 +36,22 @@ EOT
 # Install the system dependencies
 # Attempt to clean and rebuild the cache to avoid 404s
 cat <<EOT
-RUN yum clean all && \
-    yum makecache && \
-	yum update -y && \
-	yum install -y tar wget git which file unzip python-pip openssl-devel \
+RUN yum install -y tar wget git which file unzip python-pip openssl-devel \
 		make cmake3 gcc gcc-c++ libstdc++-static pkg-config psmisc gdb \
 		libdwarf-devel elfutils-libelf-devel elfutils-devel binutils-devel \
-        dwz && \
-	yum clean all
+    dwz
 EOT
 
+if [ "$pkg_arch" = "arm64" ];then
+  cat <<EOT
+RUN yum install -y clang clang-devel
+EOT
+fi
+
+# Clean YUM Cache
+cat <<EOT
+RUN yum clean all
+EOT
 
 # CentOS gives cmake 3 a weird binary name, so we link it to something more normal
 # This is required by many build scripts, including ours.
@@ -49,12 +63,12 @@ EOT
 
 # Install golang
 cat << EOT
-RUN wget https://dl.google.com/go/go1.13.5.linux-amd64.tar.gz
-RUN tar -xf go1.13.5.linux-amd64.tar.gz
+RUN wget https://dl.google.com/go/go1.13.5.linux-${pkg_arch}.tar.gz
+RUN tar -xf go1.13.5.linux-${pkg_arch}.tar.gz
 RUN mv go /usr/local
 ENV PATH /usr/local/go/bin:\$PATH
 ENV GOROOT /usr/local/go
-RUN rm -f go1.13.5.linux-amd64.tar.gz
+RUN rm -f go1.13.5.linux-${pkg_arch}.tar.gz
 EOT
 
 # Install Rustup
