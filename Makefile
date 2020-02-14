@@ -3,11 +3,15 @@ ifdef TAG
 endif
 
 ifeq ($(shell uname -m),aarch64)
-	ARCH=arm64 # For download
-	I_ARCH=aarch64 # For build rpm
+	# For download
+	ARCH=arm64
+	# For build rpm
+	I_ARCH=aarch64
 else
-	ARCH=amd64 # For download
-	I_ARCH=x86_64 # For build rpm
+	# For download
+	ARCH=amd64
+	 # For build rpm
+	I_ARCH=x86_64
 endif
 
 PROJECT_TIDB=tidb
@@ -69,6 +73,13 @@ BUILDER_IMAGE_BINARY=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-binary
 BUILDER_IMAGE_RPM=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-rpm
 BUILDER_IMAGE_DEB=$(ORG_PINGCAP)/$(BUILDER_PREFIX)-deb
 
+# make all the binary in docker. default option
+BUILD_MODE_DOCKER = docker
+# local: make binaries at local
+BUILD_MODE_LOCAL = local
+# build mode, default is docker
+BUILD_MODE = $(BUILD_MODE_DOCKER)
+
 define fetch_source
 	@if [ ! -d $(1)/.git ]; then\
 		mkdir -p $(1); \
@@ -124,8 +135,12 @@ $(ETCD_BINARY_SOURCE):
 
 .PHONY: check
 check:
+	@echo start check
 ifndef TAG
 	$(error TAG must be specified)
+endif
+ifneq ($(shell [ $(BUILD_MODE) != $(BUILD_MODE_DOCKER) ] && [ $(BUILD_MODE) != $(BUILD_MODE_LOCAL) ] && echo $(BUILD_MODE) ),)
+	$(error Unknown BUILD_MODE: $(BUILD_MODE))
 endif
 
 .PHONY: source source-tidb source-toolkit
@@ -151,6 +166,8 @@ ifdef TAG
 	$(call update_source_branch, $(TIDB_CTL_SOURCE),$(GIT_URL_TIDB_CTL), master)
 	$(call update_source_tag, $(TIDB_BINLOG_SOURCE),$(GIT_URL_TIDB_BINLOG), $(TAG))
 endif
+	mkdir -p $(ARTIFACT_BINARY_TIDB)
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
 	docker run \
 		-v $(realpath $(TIDB_SOURCE)):/build/tidb \
 		-v $(realpath $(TIKV_SOURCE)):/build/tikv \
@@ -159,7 +176,12 @@ endif
 		-v $(realpath $(TIDB_CTL_SOURCE)):/build/tidb-ctl \
 		-v $(CURDIR)/scripts/build-tidb.sh:/build-tidb.sh \
 		-v $(CURDIR)/${ARTIFACT_BINARY_TIDB}:/out \
+		-e SOURCE_DIR=/build \
+		-e TARGET_DIR=/out \
 		$(BUILDER_IMAGE_BINARY) /build-tidb.sh
+else ifeq ($(BUILD_MODE),$(BUILD_MODE_LOCAL))
+	SOURCE_DIR=$(realpath $(SOURCE_DIR)) TARGET_DIR=$(CURDIR)/$(ARTIFACT_BINARY_TIDB) scripts/build-tidb.sh
+endif
 	cp $(ETCD_BINARY_SOURCE)/etcdctl $(ARTIFACT_BINARY_TIDB)
 
 $(ARTIFACT_BINARY_TOOLKIT):
@@ -170,6 +192,7 @@ ifdef TAG
 	$(call update_source_tag, $(TIDB_TOOLS_SOURCE),$(GIT_URL_TIDB_TOOLS), $(TAG))
 	$(call update_source_tag, $(TIKV_IMPORTER_SOURCE),$(GIT_URL_TIKV_IMPORTER), $(TAG))
 endif
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
 	docker run \
 		-v $(realpath $(PD_SOURCE)):/build/pd \
 		-v $(realpath $(TIDB_LIGHTNING_SOURCE)):/build/tidb-lightning \
@@ -177,17 +200,28 @@ endif
 		-v $(realpath $(TIKV_IMPORTER_SOURCE)):/build/importer \
 		-v $(CURDIR)/scripts/build-toolkit.sh:/build-toolkit.sh \
 		-v $(CURDIR)/${ARTIFACT_BINARY_TOOLKIT}:/out \
+		-e SOURCE_DIR=/build \
+        -e TARGET_DIR=/out \
 		$(BUILDER_IMAGE_BINARY) /build-toolkit.sh
+else ifeq ($(BUILD_MODE),$(BUILD_MODE_LOCAL))
+	mkdir -p $(ARTIFACT_BINARY_TOOLKIT)
+	SOURCE_DIR=$(realpath $(SOURCE_DIR)) TARGET_DIR=$(CURDIR)/$(ARTIFACT_BINARY_TOOLKIT) scripts/build-toolkit.sh
+endif
 
 $(ARTIFACT_DOCKER): $(ARTIFACT_BINARY) $(ARTIFACT_DIR)
 	mkdir -p $(ARTIFACT_DIR)
 	bash ./scripts/gen-image-dockerfile.sh $(VERSION) | docker build -t ${TIDB_DOCKER_IMAGE_TAG} -f - .
 	docker save ${TIDB_DOCKER_IMAGE_TAG} | gzip > ${ARTIFACT_DOCKER}
 
-.PHONY: build-prepare docker docker-builder
-build-prepare: check docker-builder
-docker: build-prepare source-tidb $(ARTIFACT_DOCKER)
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
+	builder-prepare = docker-builder
+	rpm-builder-prepare = rpm-builder
+	deb-builder-prepare = deb-builder
+endif
 
+.PHONY: build-prepare docker docker-builder
+build-prepare: check $(builder-prepare)
+docker: build-prepare source-tidb $(ARTIFACT_DOCKER)
 docker-builder:
 ifeq ($(shell docker images -q $(BUILDER_IMAGE_BINARY)),)
 	bash ./scripts/gen-builder.sh $(shell cat $(TIKV_SOURCE)/rust-toolchain) $(ARCH) | docker build -t $(BUILDER_IMAGE_BINARY) -f - .
@@ -199,50 +233,62 @@ ifeq ($(shell docker images -q $(BUILDER_IMAGE_RPM)),)
 	docker build -t $(BUILDER_IMAGE_RPM) -f etc/dockerfile/builder-rpm.dockerfile .
 endif
 
-rpm: build-prepare rpm-builder rpm-tidb rpm-tidb-toolkit
-rpm-tidb: source-tidb $(ARTIFACT_BINARY_TIDB) $(ARTIFACT_DIR)
-	bash scripts/gen-tidb-rpm-spec.sh $(VERSION) > ${ARTIFACT_DIR}/rpm-spec
-	$(eval tidb_path = $(realpath $(TIDB_SOURCE)))
-	$(eval tikv_path = $(realpath $(TIKV_SOURCE)))
-	$(eval pd_path = $(realpath $(PD_SOURCE)))
-	$(eval binlog_path = $(realpath $(TIDB_BINLOG_SOURCE)))
-	docker run \
-		--rm \
-		-v $(CURDIR)/${ARTIFACT_BINARY_TIDB}:/root/rpmbuild/SOURCES/bin \
-		-v $(CURDIR)/etc/service:/root/rpmbuild/SOURCES/service \
-		-v $(tidb_path)/config/config.toml.example:/root/rpmbuild/SOURCES/config/tidb/config.toml \
-		-v $(tikv_path)/etc/config-template.toml:/root/rpmbuild/SOURCES/config/tikv/config.toml \
-		-v $(pd_path)/conf/config.toml:/root/rpmbuild/SOURCES/config/pd/config.toml \
-		-v $(tidb_path)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
-		-v $(tidb_path)/README.md:/root/rpmbuild/BUILD/README.md \
-		-v $(binlog_path)/cmd/arbiter/arbiter.toml:/root/rpmbuild/SOURCES/config/arbiter/arbiter.toml \
-		-v $(binlog_path)/cmd/drainer/drainer.toml:/root/rpmbuild/SOURCES/config/drainer/drainer.toml \
-		-v $(binlog_path)/cmd/pump/pump.toml:/root/rpmbuild/SOURCES/config/pump/pump.toml \
-		-v $(binlog_path)/cmd/reparo/reparo.toml:/root/rpmbuild/SOURCES/config/reparo/reparo.toml \
-		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb.spec \
-		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/$(I_ARCH)/ \
-		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb.spec
-	rm ${ARTIFACT_DIR}/rpm-spec
+rpm: rpm-tidb rpm-tidb-toolkit
 
-rpm-tidb-toolkit: source-tidb-toolkit $(ARTIFACT_BINARY_TOOLKIT) $(ARTIFACT_DIR)
-	bash scripts/gen-tidb-toolkit-rpm-spec.sh $(VERSION) > ${ARTIFACT_DIR}/rpm-spec
-	$(eval pd_path = $(realpath $(PD_SOURCE)))
-	$(eval lightning_path=$(realpath $(TIDB_LIGHTNING_SOURCE)))
-	$(eval tools_path=$(realpath $(TIDB_TOOLS_SOURCE)))
-	$(eval importer_path=$(realpath $(TIKV_IMPORTER_SOURCE)))
+rpm-tidb-package:
+	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS rpmbuild/BUILD rpmbuild/SOURCES/bin rpmbuild/SOURCES/service \
+	rpmbuild/SOURCES/config/tidb rpmbuild/SOURCES/config/tikv rpmbuild/SOURCES/config/pd \
+	rpmbuild/SOURCES/config/arbiter rpmbuild/SOURCES/config/drainer rpmbuild/SOURCES/config/pump \
+	rpmbuild/SOURCES/config/reparo
+	cp $(CURDIR)/${ARTIFACT_BINARY_TIDB}/* rpmbuild/SOURCES/bin
+	cp $(CURDIR)/etc/service/* rpmbuild/SOURCES/service
+	cp $(TIDB_SOURCE)/LICENSE rpmbuild/BUILD/LICENSE
+	cp $(TIDB_SOURCE)/README.md rpmbuild/BUILD/README.md
+	cp $(TIDB_SOURCE)/config/config.toml.example rpmbuild/SOURCES/config/tidb/config.toml
+	cp $(TIKV_SOURCE)/etc/config-template.toml rpmbuild/SOURCES/config/tikv/config.toml
+	cp $(PD_SOURCE)/conf/config.toml rpmbuild/SOURCES/config/pd/config.toml
+	cp $(TIDB_BINLOG_SOURCE)/cmd/arbiter/arbiter.toml rpmbuild/SOURCES/config/arbiter/arbiter.toml
+	cp $(TIDB_BINLOG_SOURCE)/cmd/drainer/drainer.toml rpmbuild/SOURCES/config/drainer/drainer.toml
+	cp $(TIDB_BINLOG_SOURCE)/cmd/pump/pump.toml rpmbuild/SOURCES/config/pump/pump.toml
+	cp $(TIDB_BINLOG_SOURCE)/cmd/reparo/reparo.toml rpmbuild/SOURCES/config/reparo/reparo.toml
+	bash scripts/gen-tidb-rpm-spec.sh $(VERSION) > rpmbuild/SPECS/tidb.spec
+
+rpm-tidb: build-prepare source-tidb $(rpm-builder-prepare) $(ARTIFACT_BINARY_TIDB) $(ARTIFACT_DIR) rpm-tidb-package
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
 	docker run \
 		--rm \
-		-v $(CURDIR)/${ARTIFACT_BINARY_TOOLKIT}:/root/rpmbuild/SOURCES/bin \
-		-v $(CURDIR)/etc/service:/root/rpmbuild/SOURCES/service \
-		-v $(importer_path)/etc/tikv-importer.toml:/root/rpmbuild/SOURCES/config/tikv-importer/tikv-importer.toml \
-		-v $(lightning_path)/tidb-lightning.toml:/root/rpmbuild/SOURCES/config/tidb-lightning/tidb-lightning.toml \
-		-v $(tools_path)/sync_diff_inspector/config.toml:/root/rpmbuild/SOURCES/config/sync_diff_inspector/config.toml \
-		-v $(tools_path)/sync_diff_inspector/config_sharding.toml:/root/rpmbuild/SOURCES/config/sync_diff_inspector/config_sharding.toml \
-		-v $(lightning_path)/LICENSE:/root/rpmbuild/BUILD/LICENSE \
-		-v $(CURDIR)/${ARTIFACT_DIR}/rpm-spec:/root/rpmbuild/SPECS/tidb-toolkit.spec \
-		-v $(CURDIR)/${ARTIFACT_DIR}:/root/rpmbuild/RPMS/$(I_ARCH)/ \
+		-v $(CURDIR)/rpmbuild:/root/rpmbuild \
+		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb.spec
+else ifeq ($(BUILD_MODE),$(BUILD_MODE_LOCAL))
+	rpmbuild --define "_topdir $(CURDIR)/rpmbuild" -bb rpmbuild/SPECS/tidb.spec
+endif
+	cp rpmbuild/RPMS/$(I_ARCH)/*.rpm $(ARTIFACT_DIR)
+	rm -rf rpmbuild
+
+rpm-toolkit-package:
+	mkdir -p rpmbuild/SOURCES rpmbuild/SPECS rpmbuild/BUILD rpmbuild/SOURCES/bin rpmbuild/SOURCES/service \
+	rpmbuild/SOURCES/config/sync_diff_inspector rpmbuild/SOURCES/tidb-lightning/tikv
+	cp $(CURDIR)/${ARTIFACT_BINARY_TOOLKIT}/* rpmbuild/SOURCES/bin
+	cp $(CURDIR)/etc/service/tidb-lightning.service rpmbuild/SOURCES/service
+	cp $(CURDIR)/etc/service/tikv-importer.service rpmbuild/SOURCES/service
+	cp $(lightning_path)/LICENSE rpmbuild/BUILD/LICENSE
+	cp $(importer_path)/etc/tikv-importer.toml rpmbuild/SOURCES/config/tikv-importer/tikv-importer.toml
+	cp $(lightning_path)/tidb-lightning.toml rpmbuild/SOURCES/config/tidb-lightning/tidb-lightning.toml
+	cp $(tools_path)/sync_diff_inspector/config.toml rpmbuild/SOURCES/config/sync_diff_inspector/config.toml
+	cp $(tools_path)/sync_diff_inspector/config_sharding.toml rpmbuild/SOURCES/config/sync_diff_inspector/config_sharding.toml
+	bash scripts/gen-tidb-toolkit-rpm-spec.sh $(VERSION) > rpmbuild/SPECS/tidb-toolkit.spec
+
+rpm-tidb-toolkit: build-prepare  $(rpm-builder-prepare) source-tidb-toolkit $(ARTIFACT_BINARY_TOOLKIT) $(ARTIFACT_DIR) rpm-toolkit-package
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
+	docker run \
+		--rm \
+		-v $(CURDIR)/rpmbuild:/root/rpmbuild \
 		$(BUILDER_IMAGE_RPM) rpmbuild -bb /root/rpmbuild/SPECS/tidb-toolkit.spec
-	rm ${ARTIFACT_DIR}/rpm-spec
+else ifeq ($(BUILD_MODE),$(BUILD_MODE_LOCAL))
+	rpmbuild --define "_topdir $(CURDIR)/rpmbuild" -bb rpmbuild/SPECS/tidb-toolkit.spec
+endif
+	cp rpmbuild/RPMS/$(I_ARCH)/*.rpm $(ARTIFACT_DIR)
+	rm -rf rpmbuild
 
 $(ARTIFACT_PACKAGE): $(ARTIFACT_BINARY_TIDB) $(ARTIFACT_DIR)
 	install -D -m 0755 $(ARTIFACT_BINARY_TIDB)/tidb-server ${ARTIFACT_PACKAGE}/usr/bin/tidb-server
@@ -286,7 +332,7 @@ ifeq ($(shell docker images -q $(BUILDER_IMAGE_DEB)),)
 endif
 
 deb: deb-tidb deb-toolkit
-deb-tidb: build-prepare deb-builder $(ARTIFACT_PACKAGE)
+deb-tidb: build-prepare $(deb-builder-prepare) $(ARTIFACT_PACKAGE)
 	bash scripts/gen-tidb-deb-control.sh $(VERSION) | install -D /dev/stdin ${ARTIFACT_PACKAGE}/DEBIAN/control
 	install -D -m 0755 etc/deb/tidb/preinst ${ARTIFACT_PACKAGE}/DEBIAN/preinst
 	install -D -m 0755 etc/deb/tidb/postinst ${ARTIFACT_PACKAGE}/DEBIAN/postinst

@@ -2,12 +2,22 @@
 
 set -e
 
-cd /build/pd && make
-cd /build/importer && make release
-cd /build/tidb-lightning && make
-cd /build/tidb-tools && make build
+if [ "$SOURCE_DIR" == "" ] || [ ! -d $SOURCE_DIR ]; then
+  echo SOURCE_DIR not exist or is not a directory
+  exit 1
+fi
 
-cp /build/pd/bin/pd-tso-bench /out
-cd /build/tidb-lightning/bin && cp tidb-lightning tidb-lightning-ctl /out
-cp /build/tidb-tools/bin/sync_diff_inspector  /out
-cp /build/importer/target/release/tikv-importer /out
+if [ "$TARGET_DIR" == "" ] || [ ! -d $TARGET_DIR ]; then
+  echo TARGET_DIR not exist or is not a directory
+  exit 1
+fi
+
+cd $SOURCE_DIR/pd && make
+cd $SOURCE_DIR/importer && make release
+cd $SOURCE_DIR/tidb-lightning && make
+cd $SOURCE_DIR/tidb-tools && make build
+
+cp $SOURCE_DIR/pd/bin/pd-tso-bench $TARGET_DIR
+cd $SOURCE_DIR/tidb-lightning/bin && cp tidb-lightning tidb-lightning-ctl $TARGET_DIR
+cp $SOURCE_DIR/tidb-tools/bin/sync_diff_inspector  $TARGET_DIR
+cp $SOURCE_DIR/importer/target/release/tikv-importer $TARGET_DIR
