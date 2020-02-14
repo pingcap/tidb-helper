@@ -80,6 +80,10 @@ define update_source_tag
 	cd $(1) && git fetch $(2) tag $(3) && git checkout $(3)
 endef
 
+define update_source_branch
+	cd $(1) && git fetch $(2) $(3) && git checkout $(3)
+endef
+
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
@@ -144,7 +148,7 @@ ifdef TAG
 	$(call update_source_tag, $(TIKV_SOURCE),$(GIT_URL_TIKV), $(TAG))
 	$(call update_source_tag, $(PD_SOURCE),$(GIT_URL_PD), $(TAG))
 	# always build tidb-ctl at master branch
-	$(call update_source_tag, $(TIDB_CTL_SOURCE),$(GIT_URL_TIDB_CTL), master)
+	$(call update_source_branch, $(TIDB_CTL_SOURCE),$(GIT_URL_TIDB_CTL), master)
 	$(call update_source_tag, $(TIDB_BINLOG_SOURCE),$(GIT_URL_TIDB_BINLOG), $(TAG))
 endif
 	docker run \
