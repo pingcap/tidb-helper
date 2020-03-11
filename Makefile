@@ -80,6 +80,13 @@ BUILD_MODE_LOCAL = local
 # build mode, default is docker
 BUILD_MODE = $(BUILD_MODE_DOCKER)
 
+# used for prepare docker builder image
+ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
+	builder-prepare = docker-builder
+	rpm-builder-prepare = rpm-builder
+	deb-builder-prepare = deb-builder
+endif
+
 define fetch_source
 	@if [ ! -d $(1)/.git ]; then\
 		mkdir -p $(1); \
@@ -149,9 +156,9 @@ source-tidb: TIDB_SOURCE TIKV_SOURCE PD_SOURCE TIDB_CTL_SOURCE TIDB_BINLOG_SOURC
 source-tidb-toolkit: PD_SOURCE TIDB_LIGHTNING_SOURCE TIDB_TOOLS_SOURCE TIKV_IMPORTER_SOURCE
 
 .PHONY: binary
-binary: binary-tidb binary-tidb-tookit
+binary: binary-tidb binary-tidb-toolkit
 binary-tidb: source-tidb build-prepare $(ARTIFACT_BINARY_TIDB)
-binary-tidb-tookit: source-tidb-toolkit build-prepare $(ARTIFACT_BINARY_TOOLKIT)
+binary-tidb-toolkit: source-tidb-toolkit build-prepare $(ARTIFACT_BINARY_TOOLKIT)
 
 $(ARTIFACT_DIR):
 	mkdir -p $(ARTIFACT_DIR)
@@ -212,12 +219,6 @@ $(ARTIFACT_DOCKER): $(ARTIFACT_BINARY) $(ARTIFACT_DIR)
 	mkdir -p $(ARTIFACT_DIR)
 	bash ./scripts/gen-image-dockerfile.sh $(VERSION) | docker build -t ${TIDB_DOCKER_IMAGE_TAG} -f - .
 	docker save ${TIDB_DOCKER_IMAGE_TAG} | gzip > ${ARTIFACT_DOCKER}
-
-ifeq ($(BUILD_MODE),$(BUILD_MODE_DOCKER))
-	builder-prepare = docker-builder
-	rpm-builder-prepare = rpm-builder
-	deb-builder-prepare = deb-builder
-endif
 
 .PHONY: build-prepare docker docker-builder
 build-prepare: check $(builder-prepare)
