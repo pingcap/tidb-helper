@@ -13,7 +13,11 @@ if [ "$TARGET_DIR" == "" ] || [ ! -d $TARGET_DIR ]; then
 fi
 
 cd $SOURCE_DIR/pd && make
-cd $SOURCE_DIR/importer && make release
+if [ "$(uname -p)" = "aarch64" ];then
+    cd $SOURCE_DIR/importer && ROCKSDB_SYS_SSE=0 make release
+else
+    cd $SOURCE_DIR/importer && make release
+fi
 cd $SOURCE_DIR/tidb-lightning && make
 cd $SOURCE_DIR/tidb-tools && make build
 

@@ -18,7 +18,12 @@ fi
 
 cd $SOURCE_DIR/tidb && make
 cd $SOURCE_DIR/tidb-ctl && make
-cd $SOURCE_DIR/pd && make
+# after v3.1, we should run `make build tools`, otherwise pd-recover won't be built
+if grep "tools:" /build/pd/Makefile; then
+    cd $SOURCE_DIR/pd && make build tools
+else
+    cd $SOURCE_DIR/pd && make
+fi
 
 if [ "$(uname -m)" = "aarch64" ];then
     cd $SOURCE_DIR/tikv && ROCKSDB_SYS_SSE=0 make dist_release
