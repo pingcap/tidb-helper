@@ -10,7 +10,7 @@ ifeq ($(shell uname -m),aarch64)
 else
 	# For download
 	ARCH=amd64
-	 # For build rpm
+	# For build rpm
 	I_ARCH=x86_64
 endif
 
