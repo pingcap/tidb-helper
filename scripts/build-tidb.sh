@@ -19,7 +19,7 @@ fi
 cd $SOURCE_DIR/tidb && make
 cd $SOURCE_DIR/tidb-ctl && make
 # after v3.1, we should run `make build tools`, otherwise pd-recover won't be built
-if grep "tools:" /build/pd/Makefile; then
+if grep "tools:" $SOURCE_DIR/pd/Makefile; then
     cd $SOURCE_DIR/pd && make build tools
 else
     cd $SOURCE_DIR/pd && make
